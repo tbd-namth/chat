@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chatbot (TBD) — Integrated</title>
+  <style>
+    /* ========== Reset / Base ========== */
+    :root {
+      --accent-1: #007991;
+      --accent-2: #78ffd6;
+      --bg-1: #0f2027;
+      --bg-2: #2c5364;
+    }
+    * { box-sizing: border-box; }
+    html,body { height:100%; margin:0; padding:0; font-family: 'Roboto', sans-serif; }
+
+    /* Body background */
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, var(--bg-1), #203a43, var(--bg-2));
+      color: #ffffff;
+    }
+
+    /* Chat Container */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 420px;
+      height: 85vh;
+      border-radius: 15px;
+      background: rgba(20, 20, 20, 0.95);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 255, 0.12);
+      overflow: hidden;
+      border: 1px solid rgba(0, 255, 255, 0.08);
+    }
+
+    /* Header */
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+      color: #ffffff;
+      font-size: 1.05rem;
+      font-weight: 700;
+      gap: 10px;
+      background-image: url('https://i.postimg.cc/g2nVKBFx/Screenshot-20241214-152909-Canva.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+    .header-left { display:flex; align-items:center; gap:10px; }
+    .logo { width:36px; height:36px; border-radius:50%; border:2px solid #fff; object-fit:cover; }
+
+    .language-select { display:flex; gap:6px; }
+    .lang-button {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(0,255,255,0.18);
+      border-radius: 12px;
+      padding: 6px 10px;
+      font-size:0.85rem;
+      cursor:pointer;
+    }
+    .lang-button.active {
+      background: rgba(0,255,255,0.7);
+      color:#000;
+      border: none;
+    }
+
+    /* Chat body */
+    .chat-body {
+      flex:1;
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      overflow-y:auto;
+      background-color: rgba(0,0,0,0.6);
+      background-image: url('https://i.postimg.cc/Rh1Tt3t4/20241214-153823-0000.png');
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* Message */
+    .message {
+      display:flex;
+      align-items:flex-end;
+      gap:10px;
+      max-width:70%;
+      padding:12px 14px;
+      border-radius:18px;
+      font-size:0.95rem;
+      box-shadow: 0 5px 12px rgba(0,0,0,0.25);
+      word-wrap:break-word;
+      overflow-wrap:break-word;
+      flex-shrink:0;
+    }
+    .message.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent-1));
+      border-top-right-radius:6px;
+      color:#002;
+    }
+    .message.bot {
+      align-self: flex-start;
+      background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+      border-top-left-radius:6px;
+      color:#001;
+    }
+    .message img { width:34px; height:34px; border-radius:50%; object-fit:cover; }
+
+    /* Thinking */
+    .thinking {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px;
+      max-width:70%;
+    }
+    .thinking img { width:34px; height:34px; border-radius:50%; border:2px solid rgba(0,255,255,0.45); }
+    .thinking .dots { display:flex; gap:6px; }
+    .thinking .dots span {
+      display:inline-block; width:8px; height:8px; background:#00ffff; border-radius:50%;
+      animation: blink 1.4s infinite ease-in-out;
+      opacity:0;
+    }
+    .thinking .dots span:nth-child(2) { animation-delay:0.25s; }
+    .thinking .dots span:nth-child(3) { animation-delay:0.5s; }
+    @keyframes blink {
+      0%,80%,100% { opacity:0; transform:translateY(0); }
+      40% { opacity:1; transform:translateY(-3px); }
+    }
+
+    /* Footer */
+    .chat-footer {
+      display:flex;
+      align-items:center;
+      padding:10px;
+      gap:8px;
+      border-top:1px solid rgba(255,255,255,0.05);
+      background: rgba(20,20,20,0.9);
+    }
+    .chat-footer input {
+      flex:1; padding:12px 14px; border-radius:22px; border:none; outline:none;
+      background: rgba(255,255,255,0.06); color:#fff; font-size:0.95rem;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.45);
+    }
+    .chat-footer button {
+      width:44px; height:44px; border-radius:50%; border:none; cursor:pointer;
+      background: linear-gradient(135deg,var(--accent-1),var(--accent-2));
+      color:#fff; font-size:1.1rem;
+      box-shadow: 0 6px 16px rgba(0,255,255,0.16);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .chat-footer button:hover { transform:scale(1.06); transition:0.15s ease; }
+
+    /* Responsive */
+    @media (max-width:480px){
+      .chat-container { width:100%; height:92vh; border-radius:0; }
+      .logo { width:30px; height:30px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container" role="application" aria-label="Chatbot">
+    <div class="chat-header">
+      <div class="header-left">
+        <img class="logo" id="header-logo" src="https://i.postimg.cc/vZ3K4K7D/1-20241214-153021-0000.png" alt="logo">
+        <div>
+          <div id="chat-title">TBD Chatbot</div>
+          <div style="font-size:0.75rem; opacity:0.9;" id="chat-subtitle">Simple local chatbot (English / ไทย)</div>
+        </div>
+      </div>
+      <div class="language-select" aria-hidden="false">
+        <button id="lang-en" class="lang-button">EN</button>
+        <button id="lang-th" class="lang-button">TH</button>
+      </div>
+    </div>
+
+    <div id="chat-body" class="chat-body" role="log" aria-live="polite"></div>
+
+    <div class="chat-footer">
+      <input id="user-input" placeholder="Type a message..." aria-label="Type a message" />
+      <button id="send-button" title="Send">➤</button>
+    </div>
+  </div>
+
+  <script>
+    // ======= Configuration & Assets =======
+    let language = localStorage.getItem('chat_lang') || 'en'; // 'en' or 'th'
+
+    const userName = "You";
+    const botName = "TBD";
+    const userAvatar = "https://img5.pic.in.th/file/secure-sv1/1000049084ea52cf432a302e47.jpg";
+    const botAvatar = "https://i.postimg.cc/vZ3K4K7D/1-20241214-153021-0000.png";
+
+    // ======= Predefined Replies (keys are lowercase, normalized) =======
+    // Note: keep these lowercase / normalized - system will normalize input before matching
+    const predefinedReplies = {
+      en: {
+        "hello": "Hi! How can I assist you?",
+        "hi": "Hi! How can I assist you?",
+        "how are you": "I'm doing great, thank you for asking!",
+        "what is your name": "I'm Chatbot, nice to meet you!",
+        "good morning": "Good morning! How can I help you today?",
+        "good night": "Good night! Sleep well!",
+        "what is your purpose": "I am here to help you with anything you need.",
+        "tell me a joke": "Why don’t skeletons fight each other? They don’t have the guts!",
+        "how can i help you": "You can ask me questions or tell me what you need help with!",
+        "what is the weather like": "I’m sorry, I can't check the weather right now.",
+        "what time is it": "I'm sorry, I can't check the time for you.",
+        "how old are you": "I don’t have an age, I'm just a chatbot!",
+        "what do you like to do": "I like to chat and help people.",
+        "where are you from": "I’m from the digital world!",
+        "can you help me": "Of course! What do you need help with?",
+        "what is your favorite color": "I don’t have a favorite color, but I think blue is nice.",
+        "do you have emotions": "No, I don’t experience emotions, but I’m designed to be helpful.",
+        "are you real": "I’m real in the digital sense, but I’m not a human.",
+        "tell me a story": "Once upon a time, there was a chatbot who loved to help people...",
+        "can you speak any other languages": "Yes, I can chat in multiple languages.",
+        "what is love": "Love is a deep feeling of affection, but I can’t experience it.",
+        "who is the president": "I don't have real-time info, but you can look it up online.",
+        "are you a robot": "I’m not a robot, I’m a chatbot!",
+        "what is 2+2": "2 + 2 is 4.",
+        "what is the capital of france": "The capital of France is Paris.",
+        "what is your favorite food": "I don’t eat food, but I know a lot about it.",
+        "can you play games": "I can’t play games, but I can help you find some!",
+        "do you like music": "I can’t listen to music, but I know about different types.",
+        "what is the meaning of life": "The meaning of life is subjective, but many say it’s about finding happiness."
+      },
+      th: {
+        "สวัสดี": "สวัสดี! มีอะไรให้ช่วยไหม?",
+        "hello": "Please select English",
+        "hi": "Please select English",
+        "คุณเป็นอย่างไรบ้าง": "ฉันสบายดี ขอบคุณที่ถาม!",
+        "คุณชื่ออะไร": "ฉันชื่อแชทบอท ยินดีที่ได้รู้จัก!",
+        "สวัสดีตอนเช้า": "สวัสดีตอนเช้า! มีอะไรให้ช่วยไหม?",
+        "ราตรีสวัสดิ์": "ราตรีสวัสดิ์! หลับฝันดี!",
+        "หน้าที่ของคุณคืออะไร": "ฉันอยู่ที่นี่เพื่อช่วยคุณทุกอย่างที่คุณต้องการ",
+        "เล่าเรื่องตลกให้ฟัง": "ทำไมกระดูกถึงไม่สู้กัน? เพราะมันไม่มี guts!",
+        "ฉันจะขอความช่วยเหลือได้ไหม": "แน่นอน! คุณต้องการให้ฉันช่วยอะไร?",
+        "อากาศวันนี้เป็นอย่างไร": "ขอโทษ ฉันไม่สามารถตรวจสอบสภาพอากาศได้ตอนนี้",
+        "เวลานี้กี่โมง": "ขอโทษ ฉันไม่สามารถตรวจสอบเวลาให้คุณได้",
+        "คุณอายุเท่าไหร่": "ฉันไม่มีอายุ เพราะฉันเป็นแชทบอท!",
+        "คุณชอบทำอะไร": "ฉันชอบการแชทและช่วยเหลือผู้คน",
+        "คุณมาจากไหน": "ฉันมาจากโลกดิจิตอล!",
+        "คุณช่วยฉันได้ไหม": "แน่นอน! คุณต้องการให้ฉันช่วยอะไร?",
+        "คุณชอบสีอะไร": "ฉันไม่มีสีโปรด แต่คิดว่าสีฟ้าก็ดูดีนะ",
+        "คุณมีความรู้สึกไหม": "ฉันไม่มีความรู้สึก แต่ฉันออกแบบมาให้ช่วยเหลือคุณ",
+        "คุณเป็นของจริงไหม": "ฉันเป็นของจริงในทางดิจิตอล แต่ไม่ใช่มนุษย์",
+        "เล่าเรื่องให้ฟังหน่อย": "กาลครั้งหนึ่งมีแชทบอทที่ชอบช่วยเหลือผู้คน...",
+        "คุณพูดภาษาต่างประเทศได้ไหม": "ใช่ ฉันสามารถแชทได้หลายภาษา",
+        "ความรักคืออะไร": "ความรักคือความรู้สึกที่ลึกซึ้ง แต่ฉันไม่สามารถสัมผัสได้",
+        "ใครเป็นประธานาธิบดี": "ขอโทษ ฉันไม่มีข้อมูลล่าสุด แต่คุณสามารถค้นหาข้อมูลได้ทางออนไลน์",
+        "คุณเป็นหุ่นยนต์ไหม": "ฉันไม่ใช่หุ่นยนต์ ฉันเป็นแชทบอท!",
+        "เมืองหลวงของฝรั่งเศสคืออะไร": "เมืองหลวงของฝรั่งเศสคือปารีส",
+        "คุณชอบอาหารอะไร": "ฉันไม่ทานอาหาร แต่ฉันรู้จักอาหารหลายประเภท",
+        "คุณเล่นเกมได้ไหม": "ฉันไม่สามารถเล่นเกมได้ แต่ฉันสามารถช่วยคุณค้นหาเกมสนุกๆ ได้",
+        "คุณชอบเพลงไหม": "ฉันไม่สามารถฟังเพลงได้ แต่ฉันรู้จักประเภทต่างๆ ของเพลง",
+        "ชีวิตมีความหมายอย่างไร": "ความหมายของชีวิตขึ้นอยู่กับแต่ละบุคคล แต่หลายคนบอกว่าคือการหาความสุข",
+        "ทำไรดี": "ไม่รู้สิ",
+        "ขอตังค์หน่อย": "หาเองสิ",
+        "ขอตังค์": "หาเอง",
+        "ขอเงิน": "หาเองสิ",
+        "น่าเบื่อ": "เล่นเกมสิ😊",
+        "เศร้า": "โอ้ๆ😘",
+        "นอนละ": "ฝันดี",
+        "ท้อละ": "โอ้ๆ ไม่เป็นไร",
+        "เหงาจัง": "วายๆ",
+        "เหงา": "วายๆ",
+        "ง่วงนอน": "ไปนอนสิ",
+        "ง่วง": "ไปนอนสิ",
+        "ไปนอนละ": "ฝันดี",
+        "คือใคร": "ไม่รู้",
+        "เจ็บใจ": "สมน้ำหน้า",
+        "กินไรดี": "ก๋วยเตี๋ยวหรือส้มตำ✅️",
+        "55555": "มีอะไรให้ช่วยไหม?",
+        "ไง": "สวัสดี! มีอะไรให้ช่วยไหม?",
+        "1+1 เท่ากับอะไร": "1 + 1 เท่ากับ 2",
+        "1+1=": "1 + 1 เท่ากับ 2",
+        "2+2 เท่ากับอะไร": "2 + 2 เท่ากับ 4",
+        "2+2=": "2 + 2 เท่ากับ 4",
+        "3+3 เท่ากับอะไร": "3 + 3 เท่ากับ 6",
+        "3+3=": "3 + 3 เท่ากับ 6",
+        "4+4 เท่ากับอะไร": "4 + 4 เท่ากับ 8",
+        "4+4=": "4 + 4 เท่ากับ 8",
+        "5+5 เท่ากับอะไร": "5 + 5 เท่ากับ 10",
+        "5+5=": "5 + 5 เท่ากับ 10",
+        "6+6 เท่ากับอะไร": "6 + 6 เท่ากับ 12",
+        "6+6=": "6 + 6 เท่ากับ 12"
+      }
+    };
+
+    // ======= DOM Elements =======
+    const chatBody = document.getElementById("chat-body");
+    const userInput = document.getElementById("user-input");
+    const sendButton = document.getElementById("send-button");
+    const langEnButton = document.getElementById("lang-en");
+    const langThButton = document.getElementById("lang-th");
+
+    // Initialize language buttons UI
+    function updateLangButtonsUI() {
+      if (language === 'en') {
+        langEnButton.classList.add('active');
+        langThButton.classList.remove('active');
+        userInput.placeholder = "Type a message...";
+      } else {
+        langThButton.classList.add('active');
+        langEnButton.classList.remove('active');
+        userInput.placeholder = "พิมพ์ข้อความ...";
+      }
+      localStorage.setItem('chat_lang', language);
+    }
+    updateLangButtonsUI();
+
+    // ======= Utility: Normalization =======
+    function normalizeText(str) {
+      if (!str) return '';
+      // Make lowercase, remove punctuation (basic), trim spaces, collapse multiple spaces
+      return str
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s\+\-]/gu, '') // keep letters, numbers, spaces, plus/minus (for math)
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // ======= Levenshtein Distance (digit-by-digit style but implemented) =======
+    function levenshteinDistance(a, b) {
+      // Ensure inputs are strings
+      a = String(a || '');
+      b = String(b || '');
+      const alen = a.length;
+      const blen = b.length;
+      if (alen === 0) return blen;
+      if (blen === 0) return alen;
+
+      // create matrix of size (blen+1) x (alen+1)
+      const matrix = Array.from({length: blen + 1}, () => Array(alen + 1).fill(0));
+      for (let i = 0; i <= blen; i++) matrix[i][0] = i;
+      for (let j = 0; j <= alen; j++) matrix[0][j] = j;
+
+      for (let i = 1; i <= blen; i++) {
+        for (let j = 1; j <= alen; j++) {
+          const cost = b.charAt(i - 1) === a.charAt(j - 1) ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,        // deletion
+            matrix[i][j - 1] + 1,        // insertion
+            matrix[i - 1][j - 1] + cost  // substitution
+          );
+        }
+      }
+      return matrix[blen][alen];
+    }
+
+    // ======= Matching logic: exact -> includes -> fuzzy =======
+    function getBestMatch(userMessage, predefined) {
+      const normalizedMessage = normalizeText(userMessage);
+      if (!normalizedMessage) return null;
+
+      // Precompute keys as normalized strings
+      const entries = Object.entries(predefined).map(([k,v]) => [normalizeText(k), v]);
+
+      // 1) Exact match
+      for (const [k,v] of entries) {
+        if (k === normalizedMessage) return [k, v];
+      }
+
+      // 2) Substring/includes (longer messages)
+      for (const [k,v] of entries) {
+        if (k && normalizedMessage.includes(k)) return [k, v];
+      }
+
+      // 3) Fuzzy match (Levenshtein) - choose dynamic threshold based on length
+      let best = null;
+      let bestDistance = Infinity;
+      for (const [k,v] of entries) {
+        if (!k) continue;
+        const distance = levenshteinDistance(normalizedMessage, k);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = [k, v];
+        }
+      }
+      if (!best) return null;
+      // dynamic threshold: allow up to ~30% of length (rounded) or min 2
+      const len = Math.max(normalizedMessage.length, best[0].length, 1);
+      const threshold = Math.max(2, Math.round(len * 0.35));
+      return (bestDistance <= threshold) ? best : null;
+    }
+
+    // Check keywords fallback
+    function containsKeyword(userMessage, keywords) {
+      if (!userMessage) return false;
+      const norm = normalizeText(userMessage);
+      return keywords.some(keyword => norm.includes(keyword));
+    }
+
+    // ======= Bot reply resolution =======
+    function getBotReply(rawUserMessage) {
+      const normalizedMessage = normalizeText(rawUserMessage);
+      const predefined = predefinedReplies[language] || {};
+
+      // 1) Check direct math small expressions like "2+2" quick-eval (safe)
+      const mathMatch = normalizedMessage.match(/^(\d+(?:\.\d+)?\s*[\+\-\*\/]\s*\d+(?:\.\d+)?)$/);
+      if (mathMatch) {
+        try {
+          // Evaluate basic arithmetic only (safe)
+          // Replace any accidental spaces
+          const expr = mathMatch[1].replace(/\s+/g, '');
+          // Disallow unexpected chars (already filtered), evaluate using Function
+          // This is basic and safe for simple arithmetic
+          // eslint-disable-next-line no-new-func
+          const result = Function('"use strict"; return (' + expr + ')')();
+          return String(expr + " = " + result);
+        } catch (e) {
+          // ignore and fallthrough
+        }
+      }
+
+      // 2) Matching predefined replies (exact/includes/fuzzy)
+      const matched = getBestMatch(normalizedMessage, predefined);
+      if (matched) {
+        return matched[1];
+      }
+
+      // 3) Keyword fallback
+      const keywords = language === "th" ? ["ช่วย","ถาม","บอก","ทำไง","ทำยังไง","ทำอะไร"] : ["help","question","tell","how","what"];
+      if (containsKeyword(normalizedMessage, keywords)) {
+        return language === "th"
+          ? "ฉันพร้อมช่วยคุณเเต่อาจจะช่วยไม่ได้มากเพราะระบบอยู่ในช่วง Beta"
+          : "I'm ready to help you, but I may not be able to help much because the system is in Beta.";
+      }
+
+      // 4) Default fallback (randomized)
+      const fallbackReplies = language === "en"
+        ? ["Sorry, I don't understand. Can you try typing again?", "I'm not sure what you mean. Could you please explain more?"]
+        : ["ขอโทษ ฉันไม่เข้าใจ ลองพิมพ์ใหม่อีกครั้งได้ไหม", "ฉันไม่แน่ใจว่าคุณหมายถึงอะไร คุณช่วยอธิบายเพิ่มเติมได้ไหม"];
+      return fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)];
+    }
+
+    // ======= Chat UI helpers =======
+    function addMessage(sender, text, avatar) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message', sender);
+      const avatarImg = document.createElement('img');
+      avatarImg.src = avatar;
+      avatarImg.alt = sender === 'user' ? userName : botName;
+
+      const textDiv = document.createElement('div');
+      textDiv.textContent = text;
+
+      messageDiv.appendChild(avatarImg);
+      messageDiv.appendChild(textDiv);
+      chatBody.appendChild(messageDiv);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function addThinkingAnimation() {
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.classList.add('thinking');
+      thinkingDiv.innerHTML = `
+        <img src="${botAvatar}" alt="bot">
+        <div class="dots" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+      `;
+      chatBody.appendChild(thinkingDiv);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      return thinkingDiv;
+    }
+    function removeThinkingAnimation(node) { if (node && node.parentNode) node.remove(); }
+
+    // ======= Persist chat history in localStorage =======
+    const HISTORY_KEY = 'chat_history_v1';
+    function saveMessageToHistory(who, text) {
+      try {
+        const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        hist.push({ who, text, ts: Date.now(), lang: language });
+        // Keep last 200 messages max
+        if (hist.length > 200) hist.splice(0, hist.length - 200);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+      } catch (e) { /* ignore */ }
+    }
+    function loadHistory() {
+      try {
+        const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        for (const msg of hist) {
+          // Optionally we could filter by language, but show all
+          addMessage(msg.who, msg.text, msg.who === 'user' ? userAvatar : botAvatar);
+        }
+      } catch (e) { /* ignore */ }
+    }
+    // Load existing history on start
+    loadHistory();
+
+    // ======= Sending logic =======
+    function sendMessage() {
+      const raw = userInput.value;
+      if (!raw || !raw.trim()) return;
+      const userMessage = raw.trim();
+      addMessage('user', userMessage, userAvatar);
+      saveMessageToHistory('user', userMessage);
+      userInput.value = '';
+      userInput.focus();
+
+      // Show thinking animation
+      const thinkingNode = addThinkingAnimation();
+
+      // Simulate processing delay (short)
+      setTimeout(() => {
+        const reply = getBotReply(userMessage);
+        removeThinkingAnimation(thinkingNode);
+        addMessage('bot', reply, botAvatar);
+        saveMessageToHistory('bot', reply);
+      }, 700 + Math.min(900, Math.max(0, userMessage.length * 20))); // adjust a bit by message length
+    }
+
+    // ======= Language switching =======
+    function switchLanguage(lang) {
+      language = lang === 'th' ? 'th' : 'en';
+      updateLangButtonsUI();
+    }
+
+    // Attach listeners
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+    langEnButton.addEventListener('click', () => switchLanguage('en'));
+    langThButton.addEventListener('click', () => switchLanguage('th'));
+
+    // Focus input on load
+    userInput.focus();
+
+    // Accessibility: allow paste Enter
+    userInput.addEventListener('paste', () => setTimeout(() => userInput.focus(), 50));
+
+    // Optional: greet user once when chat empty
+    (function greetOnce() {
+      const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      if (!hist || hist.length === 0) {
+        const greet = language === 'th' ? 'สวัสดี! ฉันคือแชทบอท มีอะไรให้ช่วยไหม?' : 'Hello! I am a chatbot — how can I help you?';
+        addMessage('bot', greet, botAvatar);
+        saveMessageToHistory('bot', greet);
+      }
+    })();
+  </script>
+</body>
+</html>
