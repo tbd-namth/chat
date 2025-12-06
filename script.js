@@ -1,43 +1,33 @@
-const chatBox = document.getElementById("chat-box");
+// ===== ใส่ API KEY ที่คุณให้มา =====
+let API_KEY = "AIzaSyDCujo9QMiUzt9igS00feacfLsBsqgRzT0";
+// ====================================
+
+// DOM
+const chatBody = document.getElementById("chat-body");
 const userInput = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
+const sendButton = document.getElementById("send-button");
 const apiKeyInput = document.getElementById("api-key");
+const saveKeyBtn = document.getElementById("save-key-btn");
 
+// แสดง API Key ในช่องใส่
+apiKeyInput.value = API_KEY;
+
+// เพิ่มข้อความลงหน้า
 function addMessage(sender, text) {
-  const msg = document.createElement("div");
-  msg.classList.add("message", sender);
-  msg.textContent = text;
-  chatBox.appendChild(msg);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  const div = document.createElement("div");
+  div.className = "message " + sender;
+  div.textContent = text;
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-sendBtn.addEventListener("click", sendMessage);
-userInput.addEventListener("keypress", e => {
-  if (e.key === "Enter") sendMessage();
-});
-
-function sendMessage() {
-  const text = userInput.value.trim();
-  const apiKey = apiKeyInput.value.trim();
-
-  if (!text) return;
-  if (!apiKey) return alert("กรุณาใส่ Gamini API Key");
-
-  addMessage("user", text);
-  userInput.value = "";
-
-  showThinking();
-
-  callGaminiAPI(text, apiKey);
-}
-
+// กำลังคิด...
 function showThinking() {
-  const thinking = document.createElement("div");
-  thinking.id = "thinking";
-  thinking.classList.add("message", "bot");
-  thinking.textContent = "กำลังคิด...";
-  chatBox.appendChild(thinking);
-  chatBox.scrollTop = chatBox.scrollHeight;
+  const t = document.createElement("div");
+  t.id = "thinking";
+  t.className = "message bot";
+  t.textContent = "กำลังคิด...";
+  chatBody.appendChild(t);
 }
 
 function removeThinking() {
@@ -45,39 +35,57 @@ function removeThinking() {
   if (t) t.remove();
 }
 
-async function callGaminiAPI(userMessage, apiKey) {
+// ส่งข้อความ
+sendButton.addEventListener("click", sendMessage);
+userInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+
+// บันทึกคีย์ใหม่
+saveKeyBtn.addEventListener("click", () => {
+  const v = apiKeyInput.value.trim();
+  if (!v) return alert("ใส่ API Key ก่อน");
+
+  API_KEY = v;
+  alert("บันทึกคีย์เรียบร้อย!");
+});
+
+// ฟังก์ชันเรียก Gamini API
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text) return;
+  if (!API_KEY) return alert("กรุณาใส่ API Key");
+
+  addMessage("user", text);
+  userInput.value = "";
+  showThinking();
+
   try {
-    const response = await fetch("https://api.gamini.ai/v1/chat/completions", {
+    const res = await fetch("https://api.gamini.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "Authorization": "Bearer " + API_KEY,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",   // เลือก model ของ Gamini ได้
-        messages: [
-          {
-            role: "user",
-            content: userMessage
-          }
-        ]
-      })
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: text }],
+      }),
     });
 
-    const data = await response.json();
-
+    const data = await res.json();
     removeThinking();
 
     if (data.choices && data.choices.length > 0) {
-      const reply = data.choices[0].message.content;
-      addMessage("bot", reply);
+      addMessage("bot", data.choices[0].message.content);
     } else {
-      addMessage("bot", "บอทตอบไม่ได้ ลองใหม่อีกครั้ง");
+      addMessage("bot", "API ผิดพลาด หรือ Key ไม่ถูกต้อง");
     }
-
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
     removeThinking();
-    addMessage("bot", "เกิดข้อผิดพลาดในการเรียก Gamini API");
+    addMessage("bot", "เชื่อมต่อ API ไม่ได้: " + err.message);
   }
 }
+
+// ข้อความต้อนรับ
+addMessage("bot", "สวัสดี! ถามอะไรก็ได้เลย 😊");
