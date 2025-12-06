@@ -1,91 +1,57 @@
-// ===== ใส่ API KEY ที่คุณให้มา =====
-let API_KEY = "AIzaSyDCujo9QMiUzt9igS00feacfLsBsqgRzT0";
-// ====================================
+const API_KEY = "AIzaSyDCujo9QMiUzt9igS00feacfLsBsqgRzT0";
 
-// DOM
-const chatBody = document.getElementById("chat-body");
-const userInput = document.getElementById("user-input");
-const sendButton = document.getElementById("send-button");
-const apiKeyInput = document.getElementById("api-key");
-const saveKeyBtn = document.getElementById("save-key-btn");
+async function sendMessage() {
+    const input = document.getElementById("msgInput");
+    const text = input.value.trim();
+    if (!text) return;
 
-// แสดง API Key ในช่องใส่
-apiKeyInput.value = API_KEY;
+    addMessage("user", text);
+    input.value = "";
 
-// เพิ่มข้อความลงหน้า
-function addMessage(sender, text) {
-  const div = document.createElement("div");
-  div.className = "message " + sender;
-  div.textContent = text;
-  chatBody.appendChild(div);
-  chatBody.scrollTop = chatBody.scrollHeight;
+    addMessage("bot", "กำลังคิด...");
+
+    const reply = await getGaminiReply(text);
+
+    removeThinking();
+    addMessage("bot", reply);
 }
 
-// กำลังคิด...
-function showThinking() {
-  const t = document.createElement("div");
-  t.id = "thinking";
-  t.className = "message bot";
-  t.textContent = "กำลังคิด...";
-  chatBody.appendChild(t);
+function addMessage(sender, text) {
+    const box = document.getElementById("messages");
+    const div = document.createElement("div");
+    div.className = "message " + sender;
+    div.innerText = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
 }
 
 function removeThinking() {
-  const t = document.getElementById("thinking");
-  if (t) t.remove();
+    const msgs = document.querySelectorAll(".bot");
+    const last = msgs[msgs.length - 1];
+    if (last && last.innerText === "กำลังคิด...") last.remove();
 }
 
-// ส่งข้อความ
-sendButton.addEventListener("click", sendMessage);
-userInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
+async function getGaminiReply(userMessage) {
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
 
-// บันทึกคีย์ใหม่
-saveKeyBtn.addEventListener("click", () => {
-  const v = apiKeyInput.value.trim();
-  if (!v) return alert("ใส่ API Key ก่อน");
+    const body = {
+        contents: [
+            {
+                parts: [{ text: userMessage }]
+            }
+        ]
+    };
 
-  API_KEY = v;
-  alert("บันทึกคีย์เรียบร้อย!");
-});
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
 
-// ฟังก์ชันเรียก Gamini API
-async function sendMessage() {
-  const text = userInput.value.trim();
-  if (!text) return;
-  if (!API_KEY) return alert("กรุณาใส่ API Key");
-
-  addMessage("user", text);
-  userInput.value = "";
-  showThinking();
-
-  try {
-    const res = await fetch("https://api.gamini.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + API_KEY,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: text }],
-      }),
-    });
-
-    const data = await res.json();
-    removeThinking();
-
-    if (data.choices && data.choices.length > 0) {
-      addMessage("bot", data.choices[0].message.content);
-    } else {
-      addMessage("bot", "API ผิดพลาด หรือ Key ไม่ถูกต้อง");
+        const data = await res.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "ขออภัย ตอบไม่ได้";
+    } catch (e) {
+        return "เกิดข้อผิดพลาด";
     }
-  } catch (err) {
-    removeThinking();
-    addMessage("bot", "เชื่อมต่อ API ไม่ได้: " + err.message);
-  }
 }
-
-// ข้อความต้อนรับ
-addMessage("bot", "สวัสดี! ถามอะไรก็ได้เลย 😊");
